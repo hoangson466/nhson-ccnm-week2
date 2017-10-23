@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Geocoding service</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <style>
+        .content {
+            top: 10%;
+            left: 1%;
+            position: absolute;
+            background: #b1bbcc;
+        }
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+        /* width: 60%; */
+      }
+      #info-panel {
+        /* height: 100%;
+        width: 40%; */
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #floating-panel {
+        position: absolute;
+        top: 10px;
+        left: 1%;
+        z-index: 5;
+        background-color: #fff;
+        padding: 5px;
+        border: 1px solid #999;
+        text-align: center;
+        font-family: 'Roboto','sans-serif';
+        line-height: 30px;
+        padding-left: 10px;
+      }
+
+      .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            padding-top: 100px; /* Location of the box */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgb(0,0,0); /* Fallback color */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+        }
+
+        /* Modal Content */
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+        }
+
+        /* The Close Button */
+        .close {
+            color: #aaaaaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  </head>
+  <body>
+    <div id="floating-panel">
+      <input id="address" type="textbox">
+      <input id="geocode" type="button" value="Geocode">
+    </div>
+    <div id="map"></div>
+    <div class="content">
+        <!-- <div id="map"></div> -->
+        <div class="info-panel">
+            <div>
+                <label>Latitude</label>
+                <input id="lat" readonly>
+            </div>
+            <div>
+                <label>Longitude</label>
+                <input id="lng" readonly>
+            </div>
+            <input id="searchLocation" type="button" value="Search" style="margin-bottom: 10px;">
+        </div>
+    </div>
+    <div id="myModal" class="modal">
+            
+              <!-- Modal content -->
+              <div class="modal-content">
+                <span class="close">&times;</span>
+                <!-- <p>Some text in the Modal..</p> -->
+              </div>
+            
+            </div>
+    <script>
+        var span = document.getElementsByClassName("close")[0];
+        var modal = document.getElementById('myModal');
+        span.onclick = function() {
+            modal.style.display = "none";
+        }
+
+        // When the user clicks anywhere outside of the modal, close it
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+      function initMap() {
+            var map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 8,
+                center: { lat: -34.397, lng: 150.644 }
+            });
+            var geocoder = new google.maps.Geocoder();
+
+            document.getElementById('geocode').addEventListener('click', function () {
+                geocodeAddress(geocoder, map);
+            });
+
+            document.getElementById('searchLocation').addEventListener('click', function () {
+                searchLocation();
+            });
+        }
+
+      function geocodeAddress(geocoder, resultsMap) {
+        var address = document.getElementById('address').value;
+        geocoder.geocode({'address': address}, function(results, status) {
+          if (status === 'OK') {
+            resultsMap.setCenter(results[0].geometry.location);
+            var marker = new google.maps.Marker({
+              map: resultsMap,
+              position: results[0].geometry.location
+            });
+
+            document.getElementById('lat').value = results[0].geometry.location.lat();
+            document.getElementById('lng').value = results[0].geometry.location.lng();
+          } else {
+            alert('Geocode was not successful for the following reason: ' + status);
+          }
+        });
+      }
+
+      function searchLocation() {
+            var lat = document.getElementById('lat').value;
+            var lng = document.getElementById('lng').value;
+
+            //   $.get("https://api.instagram.com/v1/locations/search?lat=48.858844&lng=2.294351&access_token=399987788.e029fea.ba2984e1ba1841d0abebe6f49041bf88", function (data, status) {
+            //         console.log(data);
+            //     });
+            if (!lat || !lng) { alert('Please geocode location'); }
+            else {
+                $.ajax({
+                    url: `https://api.instagram.com/v1/locations/search?lat=${lat}&lng=${lng}&access_token=399987788.e029fea.ba2984e1ba1841d0abebe6f49041bf88`,
+                    type: 'GET',
+                    crossDomain: true,
+                    dataType: 'jsonp',
+                    success: function (data) { 
+                        console.log(data); 
+                        var content = document.getElementsByClassName('content')[0];
+                        let locations = data.data;
+                        for(var i = 0; i < locations.length; i++) {
+                            var newDiv = document.createElement('div');
+                            var button = document.createElement('button');
+                            var location = locations[i];
+                            button.innerText = locations[i].name;
+                            button.id = locations[i].id;
+                            button.style.width = '100%';
+
+                            button.onclick = function(event) {
+                                console.log(event.srcElement.id);
+                                searchImages(event.srcElement);
+                                // modal.style.display = "block";
+                            }
+
+                            // var label = document.createElement('label');
+
+                            newDiv.appendChild(button);
+
+
+                            content.appendChild(newDiv);
+                        }
+                        },
+                    error: function () { alert('Failed!'); },
+                });
+            }
+        }
+
+        function searchImages(location) {
+                $.ajax({
+                    url: `https://api.instagram.com/v1/locations/${location.id}/media/recent?access_token=399987788.e029fea.ba2984e1ba1841d0abebe6f49041bf88`,
+                    type: 'GET',
+                    crossDomain: true,
+                    dataType: 'jsonp',
+                    success: function (response) {
+                        console.log(response.data);
+                        modal.style.display = "block";
+                        var elements = document.getElementsByClassName('modal-content')[0].getElementsByTagName('img');
+                        var elementsLength = elements.length;
+                        for (var i = elementsLength - 1; i >= 0; i--) {
+                            elements[i].remove();
+                        }
+                        for (var i = 0; i < response.data.length; i++) {
+                                var img = document.createElement('img');
+                                console.log(response.data[i].images.thumbnail.url);
+                                img.src = response.data[i].images.thumbnail.url;
+
+                                document.getElementsByClassName('modal-content')[0].appendChild(img);
+                            }
+                        
+                    },
+                    error: function () { alert('Failed!'); },
+                });
+            }
+    </script>
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyABJ1_7ISvMjSQDpWpgFSwLF1dF6dfXmPM&callback=initMap">
+    </script>
+  </body>
+</html>
